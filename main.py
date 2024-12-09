@@ -44,7 +44,7 @@ def login(driver: webdriver.Chrome, _login: str, _password: str) -> bool:
         driver.find_element(By.NAME, "email").send_keys(_login)
         driver.find_element(By.NAME, "password").send_keys(_password + Keys.ENTER)
 
-        WebDriverWait(driver, 3).until(
+        WebDriverWait(driver, 5).until(
             EC.url_changes(driver.current_url)
         )
         return True

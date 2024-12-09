@@ -57,9 +57,6 @@ def login(driver: webdriver.Chrome, _login: str, _password: str) -> bool:
         print(f"Ошибка в функции '{login.__name__}': {ex}")
         return False
 
-    finally:
-        driver.quit()
-
 
 def get_proxies(driver: webdriver.Chrome) -> None:
     """
@@ -88,9 +85,6 @@ def get_proxies(driver: webdriver.Chrome) -> None:
     except WebDriverException as ex:
         print(f"Ошибка в функции '{login.__name__}': {ex}")
 
-    finally:
-        driver.quit()
-
 
 def process_table(driver: webdriver.Chrome) -> None:
     """
@@ -118,9 +112,6 @@ def process_table(driver: webdriver.Chrome) -> None:
 
     except WebDriverException as ex:
         print(f"Ошибка в функции '{login.__name__}': {ex}")
-
-    finally:
-        driver.quit()
 
 
 def setup_driver() -> webdriver.Chrome:

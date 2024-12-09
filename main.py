@@ -27,7 +27,7 @@ def is_valid(text: str) -> bool:
     return re.match(combined_pattern, text) is not None
 
 
-def login(driver: webdriver.Chrome, _login: str, _password: str) -> None:
+def login(driver: webdriver.Chrome, _login: str, _password: str) -> bool:
     """
     Функция выполняет вход в систему.
 
@@ -35,14 +35,30 @@ def login(driver: webdriver.Chrome, _login: str, _password: str) -> None:
     :param _login: Логин для входа.
     :param _password: Пароль для входа.
     :raises WebDriverException: Если возникает ошибка при взаимодействии с веб-драйвером.
+    :raises TimeoutException: Если превышено время ожидания изменения URL после входа.
+    :return: True, если вход выполнен успешно, иначе False.
     """
 
     try:
         driver.find_element(By.LINK_TEXT, "Вход").click()
         driver.find_element(By.NAME, "email").send_keys(_login)
         driver.find_element(By.NAME, "password").send_keys(_password + Keys.ENTER)
+
+        WebDriverWait(driver, 3).until(
+            EC.url_changes(driver.current_url)
+        )
+        return True
+
+    except TimeoutException:
+        print(f"Ошибка авторизации '{login.__name__}': Неверный логин или пароль")
+        return False
+
     except WebDriverException as ex:
         print(f"Ошибка в функции '{login.__name__}': {ex}")
+        return False
+
+    finally:
+        driver.quit()
 
 
 def get_proxies(driver: webdriver.Chrome) -> None:
@@ -50,21 +66,30 @@ def get_proxies(driver: webdriver.Chrome) -> None:
     Функция переходит на страницу с прокси и вызывает функцию обработки таблицы.
 
     :param driver: Экземпляр веб-драйвера.
-    :raises TimeoutException: Если переход на страницу 'Мои прокси' не произошел за 10 секунд.
+    :raises WebDriverException: Если переход на страницу 'Мои прокси'
+    и вкладку IPv4 Shared Прокси не произошел за 10 секунд.
+    :raises WebDriverException: Если возникает ошибка при взаимодействии с веб-драйвером.
     """
 
     try:
-        old_url = driver.current_url
-        WebDriverWait(driver, 10).until(
-            lambda driver_func: driver_func.current_url != old_url
-        )
 
         driver.get("https://belurk.online/my-proxies/ipv4-shared")
 
+        WebDriverWait(driver, 10).until(
+            EC.url_to_be("https://belurk.online/my-proxies/ipv4-shared")
+        )
+
         process_table(driver)
 
-    except TimeoutException as ex:
-        print(f"Ошибка в функции '{get_proxies.__name__}': {ex}")
+    except TimeoutException:
+        print(f"Ошибка в функции '{get_proxies.__name__}':"
+              f"Переход на страницу https://belurk.online/my-proxies/ipv4-shared не произошел за 10 секунд")
+
+    except WebDriverException as ex:
+        print(f"Ошибка в функции '{login.__name__}': {ex}")
+
+    finally:
+        driver.quit()
 
 
 def process_table(driver: webdriver.Chrome) -> None:
@@ -73,6 +98,7 @@ def process_table(driver: webdriver.Chrome) -> None:
 
     :param driver: Экземпляр веб-драйвера.
     :raises TimeoutException: Если таблица не найдена или не загружена в течение 10 секунд.
+    :raises WebDriverException: Если возникает ошибка при взаимодействии с веб-драйвером.
     """
 
     try:
@@ -86,8 +112,15 @@ def process_table(driver: webdriver.Chrome) -> None:
             result = [cell.text for cell in cells if is_valid(cell.text)]
             print(" - ".join(result))
 
-    except TimeoutException as ex:
-        print(f"Ошибка в функции '{process_table.__name__}': {ex}")
+    except TimeoutException:
+        print(f"Ошибка в функции '{process_table.__name__}':"
+              f"Таблица не найдена или не загружена в течение 10 секунд")
+
+    except WebDriverException as ex:
+        print(f"Ошибка в функции '{login.__name__}': {ex}")
+
+    finally:
+        driver.quit()
 
 
 def setup_driver() -> webdriver.Chrome:
@@ -126,12 +159,15 @@ def main() -> None:
     driver = setup_driver()
 
     try:
-        login(driver, _login, _password)
+        if login(driver, _login, _password):
 
-        get_proxies(driver)
+            get_proxies(driver)
+        else:
+            print("Авторизация не удалась. Проверьте логин и пароль.")
 
     except WebDriverException as ex:
         print(f"Ошибка в функции '{main.__name__}': {ex}")
+
     finally:
         driver.quit()
 
